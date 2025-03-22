@@ -14,23 +14,26 @@ from config import *
 
 def get_key():
     """Get a keypress without blocking."""
-    # Store original terminal settings
-    old_settings = termios.tcgetattr(sys.stdin)
-    try:
-        # Set terminal to raw mode
-        tty.setraw(sys.stdin.fileno())
-        # Check if there's input waiting
-        if select.select([sys.stdin], [], [], 0)[0]:
-            # Read a single character
-            key = sys.stdin.read(1)
-            # Handle arrow keys (they start with \x1b[)
-            if key == '\x1b':
-                sys.stdin.read(1)  # skip the [
-                key = sys.stdin.read(1)
-            return key
-    finally:
-        # Restore terminal settings
-        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+    if os.name == 'posix':  # Linux/Unix systems
+        # Store original terminal settings
+        old_settings = termios.tcgetattr(sys.stdin)
+        try:
+            # Set terminal to raw mode
+            tty.setraw(sys.stdin.fileno())
+            # Set shorter timeout for more responsive controls
+            if select.select([sys.stdin], [], [], 0.1)[0]:
+                char = sys.stdin.read(1)
+                # Handle escape sequences (arrow keys)
+                if char == '\x1b':
+                    if select.select([sys.stdin], [], [], 0)[0]:
+                        char2 = sys.stdin.read(1)
+                        if char2 == '[':
+                            char3 = sys.stdin.read(1)
+                            return {'A': 'w', 'B': 's', 'C': 'd', 'D': 'a'}.get(char3)
+                return char
+        finally:
+            # Restore terminal settings
+            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
     return None
 
 class Snake:
