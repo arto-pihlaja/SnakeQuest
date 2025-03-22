@@ -6,6 +6,7 @@ import random
 import time
 import os
 import sys
+import msvcrt  # For Windows
 from config import *
 
 class Snake:
@@ -17,7 +18,7 @@ class Snake:
         self.length = INITIAL_SNAKE_LENGTH
         # Start the snake in the middle of the screen
         self.positions = [
-            (GRID_SIZE // 2, GRID_SIZE // 2 + i) 
+            (GRID_WIDTH // 2, GRID_HEIGHT // 2 + i) 
             for i in range(self.length)
         ]
         self.direction = UP
@@ -38,8 +39,8 @@ class Snake:
         new_head = (new_x, new_y)
         
         # Check if the snake hits the wall
-        if (new_x == 0 or new_x == GRID_SIZE - 1 or 
-            new_y == 0 or new_y == GRID_SIZE - 1):
+        if (new_x == 0 or new_x == GRID_WIDTH - 1 or 
+            new_y == 0 or new_y == GRID_HEIGHT - 1):
             return False  # Game over
         
         # Check if the snake hits itself
@@ -89,8 +90,8 @@ class Candy:
         while True:
             # Generate a random position within the game area (excluding the walls)
             position = (
-                random.randint(1, GRID_SIZE - 2),
-                random.randint(1, GRID_SIZE - 2)
+                random.randint(1, GRID_WIDTH - 2),
+                random.randint(1, GRID_HEIGHT - 2)
             )
             # Check if the position is valid (not inside the snake or walls)
             if position not in snake_positions and position not in walls:
@@ -104,6 +105,7 @@ class Game:
     def __init__(self):
         """Initialize the game with its starting state."""
         self.reset_game()
+        self.last_update = time.time()
         
     def reset_game(self):
         """Reset the game to its initial state."""
@@ -119,16 +121,55 @@ class Game:
         walls = []
         
         # Top and bottom walls
-        for x in range(GRID_SIZE):
+        for x in range(GRID_WIDTH):
             walls.append((x, 0))
-            walls.append((x, GRID_SIZE - 1))
+            walls.append((x, GRID_HEIGHT - 1))
             
         # Left and right walls
-        for y in range(1, GRID_SIZE - 1):
+        for y in range(1, GRID_HEIGHT - 1):
             walls.append((0, y))
-            walls.append((GRID_SIZE - 1, y))
+            walls.append((GRID_WIDTH - 1, y))
             
         return walls
+    
+    def handle_input(self):
+        """Handle keyboard input without blocking."""
+        if msvcrt.kbhit():  # Check if a key is pressed
+            key = msvcrt.getch().decode('utf-8').lower()
+            if key == 'q':
+                return False
+            elif self.game_over and key == 'r':
+                self.reset_game()
+            elif not self.game_over:
+                if key == 'w':
+                    self.snake.change_direction(UP)
+                elif key == 's':
+                    self.snake.change_direction(DOWN)
+                elif key == 'a':
+                    self.snake.change_direction(LEFT)
+                elif key == 'd':
+                    self.snake.change_direction(RIGHT)
+        return True
+    
+    def update(self):
+        """Update game state."""
+        if not self.game_over:
+            # Move the snake
+            if not self.snake.update():
+                self.game_over = True
+                return
+            
+            # Check for auto growth
+            self.snake.auto_grow()
+            
+            # Check if the snake ate the candy
+            if self.snake.get_head_position() == self.candy.position:
+                self.snake.grow()
+                self.candy = Candy(self.snake.positions, self.walls)
+                self.score += 1
+                
+                # Increase the speed
+                self.speed += SPEED_INCREASE
     
     def draw(self):
         """Draw the game state to the console."""
@@ -136,7 +177,7 @@ class Game:
         os.system('clear' if os.name == 'posix' else 'cls')
         
         # Create a grid representation
-        grid = [[' ' for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
+        grid = [[' ' for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
         
         # Place walls on the grid
         for x, y in self.walls:
@@ -168,65 +209,27 @@ class Game:
             print("w = Up, s = Down, a = Left, d = Right")
             print("q = Quit")
     
-    def update(self):
-        """Update game state."""
-        if not self.game_over:
-            # Move the snake
-            if not self.snake.update():
-                self.game_over = True
-                return
-            
-            # Check for auto growth
-            self.snake.auto_grow()
-            
-            # Check if the snake ate the candy
-            if self.snake.get_head_position() == self.candy.position:
-                self.snake.grow()
-                self.candy = Candy(self.snake.positions, self.walls)
-                self.score += 1
-                
-                # Increase the speed
-                self.speed += SPEED_INCREASE
-    
     def run(self):
-        """Main game loop with simple input handling."""
+        """Main game loop with non-blocking input."""
         print("Welcome to Snake Game!")
         print("Controls: w=Up, s=Down, a=Left, d=Right, q=Quit")
         print("Game starts in 3 seconds...")
         time.sleep(3)
         
         running = True
-        last_update = time.time()
-        
-        # This is a very simplified version of the game that shows one frame
-        # and then waits for input, rather than having smooth continuous movement
         while running:
+            # Handle input
+            running = self.handle_input()
+            
+            # Update game state
+            self.update()
+            
             # Draw the current state
             self.draw()
             
-            # Get input
-            key = input("Enter command: ").lower()
-            
-            # Process input
-            if key == 'q':
-                running = False
-            elif self.game_over and key == 'r':
-                self.reset_game()
-            elif not self.game_over:
-                # Change direction based on input
-                if key == 'w':
-                    self.snake.change_direction(UP)
-                elif key == 's':
-                    self.snake.change_direction(DOWN)
-                elif key == 'a':
-                    self.snake.change_direction(LEFT)
-                elif key == 'd':
-                    self.snake.change_direction(RIGHT)
-            
-            # Update the game state
-            if not self.game_over:
-                self.update()
-            
+            # Control game speed
+            time.sleep(1 / self.speed)
+        
         print("Thanks for playing!")
 
 

@@ -1,6 +1,6 @@
 """
 Snake game module containing the main game logic and classes.
-Using a simplified PyGame approach with reduced graphics dependency.
+Using PyGame for graphics and input handling.
 """
 import pygame
 import random
@@ -8,8 +8,8 @@ import time
 import os
 from config import *
 
-# Initialize Pygame with a software-only driver to avoid graphics driver issues
-os.environ['SDL_VIDEODRIVER'] = 'dummy'
+# Initialize Pygame
+pygame.init()
 
 class Snake:
     """
@@ -18,12 +18,13 @@ class Snake:
     def __init__(self):
         """Initialize the snake with its starting position and length."""
         self.length = INITIAL_SNAKE_LENGTH
-        # Start the snake in the middle of the screen
+        # Start the snake in the middle of the screen, moving right
         self.positions = [
             (GRID_SIZE // 2, GRID_SIZE // 2 + i) 
             for i in range(self.length)
         ]
-        self.direction = UP
+        self.direction = RIGHT  # Start moving right
+        self.next_direction = RIGHT  # Track the next direction change
         self.last_auto_growth = time.time()
         
     def get_head_position(self):
@@ -32,10 +33,13 @@ class Snake:
     
     def update(self):
         """Update the snake's position based on its direction."""
+        # Update the current direction to the next direction
+        self.direction = self.next_direction
+        
+        # Calculate new head position
         head_x, head_y = self.get_head_position()
         dir_x, dir_y = self.direction
-        new_head = ((head_x + dir_x) % (GRID_SIZE - 2) + 1, 
-                   (head_y + dir_y) % (GRID_SIZE - 2) + 1)
+        new_head = (head_x + dir_x, head_y + dir_y)
         
         # Check if the snake hits itself
         if new_head in self.positions[1:]:
@@ -69,11 +73,19 @@ class Snake:
     def change_direction(self, direction):
         """
         Change the direction of the snake.
-        Prevents changing to the opposite direction.
+        Prevents changing to the opposite direction and ensures right-angle turns.
         """
-        # Prevent changing to the opposite direction
-        if (direction[0] * -1, direction[1] * -1) != self.direction:
-            self.direction = direction
+        # Don't allow moving in the opposite direction
+        if (direction[0] * -1, direction[1] * -1) == self.direction:
+            return
+            
+        # Only allow right-angle turns
+        if (direction[0] != 0 and self.direction[0] != 0) or \
+           (direction[1] != 0 and self.direction[1] != 0):
+            return
+            
+        # Update the next direction
+        self.next_direction = direction
 
 
 class Candy:
@@ -103,8 +115,9 @@ class Game:
     """
     def __init__(self):
         """Initialize the game with its starting state."""
-        # Initialize pygame in a way that doesn't require display hardware
-        pygame.init()
+        # Initialize pygame display
+        self.screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
+        pygame.display.set_caption("Snake Game")
         
         # Initialize the console-based display
         self.reset_game()
@@ -140,32 +153,26 @@ class Game:
             if event.type == pygame.QUIT:
                 return False
             elif event.type == pygame.KEYDOWN:
-                if self.game_over:
-                    if event.key == pygame.K_r:
-                        self.reset_game()
-                else:
-                    if event.key == pygame.K_UP:
-                        self.snake.change_direction(UP)
-                    elif event.key == pygame.K_DOWN:
-                        self.snake.change_direction(DOWN)
-                    elif event.key == pygame.K_LEFT:
-                        self.snake.change_direction(LEFT)
-                    elif event.key == pygame.K_RIGHT:
-                        self.snake.change_direction(RIGHT)
-                    # Also support WASD keys
-                    elif event.key == pygame.K_w:
-                        self.snake.change_direction(UP)
-                    elif event.key == pygame.K_s:
-                        self.snake.change_direction(DOWN)
-                    elif event.key == pygame.K_a:
-                        self.snake.change_direction(LEFT)
-                    elif event.key == pygame.K_d:
-                        self.snake.change_direction(RIGHT)
+                if event.key == pygame.K_q:
+                    return False
+                if self.game_over and event.key == pygame.K_r:
+                    self.reset_game()
         return True
     
     def update(self):
         """Update game state."""
         if not self.game_over:
+            # Handle movement keys
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_UP] or keys[pygame.K_w]:
+                self.snake.change_direction(UP)
+            elif keys[pygame.K_DOWN] or keys[pygame.K_s]:
+                self.snake.change_direction(DOWN)
+            elif keys[pygame.K_LEFT] or keys[pygame.K_a]:
+                self.snake.change_direction(LEFT)
+            elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+                self.snake.change_direction(RIGHT)
+            
             # Move the snake
             if not self.snake.update():
                 self.game_over = True
@@ -184,39 +191,45 @@ class Game:
                 self.speed += SPEED_INCREASE
     
     def draw(self):
-        """Draw the game state to the console."""
-        # Clear the console
-        os.system('clear' if os.name == 'posix' else 'cls')
+        """Draw the game state to the Pygame window."""
+        # Clear the screen
+        self.screen.fill(BLACK)
         
-        # Create a grid representation
-        grid = [[' ' for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
-        
-        # Place walls on the grid
+        # Draw walls
         for x, y in self.walls:
-            grid[y][x] = '#'
-            
-        # Place candy on the grid
+            pygame.draw.rect(self.screen, WHITE, 
+                           (x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
+        
+        # Draw candy
         x, y = self.candy.position
-        grid[y][x] = '*'
+        pygame.draw.rect(self.screen, RED,
+                        (x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
         
-        # Place snake on the grid
+        # Draw snake
         for i, (x, y) in enumerate(self.snake.positions):
-            if i == 0:  # Head
-                grid[y][x] = 'O'
-            else:  # Body
-                grid[y][x] = 'o'
+            color = GREEN if i == 0 else (0, 200, 0)  # Head is slightly brighter
+            pygame.draw.rect(self.screen, color,
+                           (x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
         
-        # Print the grid
-        print(f"Snake Game - Score: {self.score}")
-        print(f"Speed: {self.speed:.1f} - Snake Length: {self.snake.length}")
-        for row in grid:
-            print(''.join(row))
-            
-        # Print game over message
+        # Draw score and game info
+        font = pygame.font.Font(None, 36)
+        score_text = font.render(f'Score: {self.score}', True, WHITE)
+        speed_text = font.render(f'Speed: {self.speed:.1f}', True, WHITE)
+        length_text = font.render(f'Length: {self.snake.length}', True, WHITE)
+        
+        self.screen.blit(score_text, (10, 10))
+        self.screen.blit(speed_text, (10, 40))
+        self.screen.blit(length_text, (10, 70))
+        
+        # Draw game over message
         if self.game_over:
-            print("Game Over! Press 'r' to restart or 'q' to quit.")
-        else:
-            print("Use arrow keys or WASD to move. Press 'q' to quit.")
+            game_over_font = pygame.font.Font(None, 48)
+            game_over_text = game_over_font.render('Game Over! Press R to restart', True, WHITE)
+            text_rect = game_over_text.get_rect(center=(WINDOW_SIZE/2, WINDOW_SIZE/2))
+            self.screen.blit(game_over_text, text_rect)
+        
+        # Update the display
+        pygame.display.flip()
     
     def run(self):
         """Main game loop."""
@@ -231,13 +244,8 @@ class Game:
         
         running = True
         while running:
-            # Handle events
+            # Handle events (quit and restart)
             running = self.handle_events()
-            
-            # Get keyboard state
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_q]:
-                running = False
             
             # Update game state
             self.update()

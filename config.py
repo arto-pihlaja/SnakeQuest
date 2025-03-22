@@ -5,8 +5,9 @@ Contains all the constants and settings for the game.
 
 # Window configuration
 BLOCK_SIZE = 20  # Size of each block in pixels
-GRID_SIZE = 30   # Number of blocks in each dimension
-WINDOW_SIZE = BLOCK_SIZE * GRID_SIZE  # Window size in pixels
+GRID_WIDTH = 30  # Number of blocks horizontally
+GRID_HEIGHT = 16  # Number of blocks vertically (about half of width)
+WINDOW_SIZE = (BLOCK_SIZE * GRID_WIDTH, BLOCK_SIZE * GRID_HEIGHT)  # Window size in pixels
 
 # Colors
 BLACK = (0, 0, 0)
