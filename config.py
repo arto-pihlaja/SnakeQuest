@@ -5,9 +5,17 @@ Contains all the constants and settings for the game.
 
 # Window configuration
 BLOCK_SIZE = 20  # Size of each block in pixels
-GRID_WIDTH = 30  # Number of blocks horizontally
-GRID_HEIGHT = 16  # Number of blocks vertically (about half of width)
-WINDOW_SIZE = (BLOCK_SIZE * GRID_WIDTH, BLOCK_SIZE * GRID_HEIGHT)  # Window size in pixels
+
+# Grid dimensions for simple console version
+WIDTH_SIMPLE = 30  # Number of blocks horizontally
+HEIGHT_SIMPLE = 16  # Number of blocks vertically
+
+# Grid dimensions for pygame version
+WIDTH_PYGAME = 30  # Number of blocks horizontally
+HEIGHT_PYGAME = 30  # Number of blocks vertically
+
+# Window size for pygame version
+WINDOW_SIZE = (BLOCK_SIZE * WIDTH_PYGAME, BLOCK_SIZE * HEIGHT_PYGAME)
 
 # Colors
 BLACK = (0, 0, 0)

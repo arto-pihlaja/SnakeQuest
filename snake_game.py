@@ -20,7 +20,7 @@ class Snake:
         self.length = INITIAL_SNAKE_LENGTH
         # Start the snake in the middle of the screen, moving right
         self.positions = [
-            (GRID_SIZE // 2, GRID_SIZE // 2 + i) 
+            (WIDTH_PYGAME // 2, HEIGHT_PYGAME // 2 + i) 
             for i in range(self.length)
         ]
         self.direction = RIGHT  # Start moving right
@@ -46,8 +46,8 @@ class Snake:
             return False  # Game over
         
         # Check if the snake hits the wall
-        if (new_head[0] == 0 or new_head[0] == GRID_SIZE - 1 or 
-            new_head[1] == 0 or new_head[1] == GRID_SIZE - 1):
+        if (new_head[0] == 0 or new_head[0] == WIDTH_PYGAME - 1 or 
+            new_head[1] == 0 or new_head[1] == HEIGHT_PYGAME - 1):
             return False  # Game over
         
         # Add the new head position at the beginning of the list
@@ -101,8 +101,8 @@ class Candy:
         while True:
             # Generate a random position within the game area (excluding the walls)
             position = (
-                random.randint(1, GRID_SIZE - 2),
-                random.randint(1, GRID_SIZE - 2)
+                random.randint(1, WIDTH_PYGAME - 2),
+                random.randint(1, HEIGHT_PYGAME - 2)
             )
             # Check if the position is valid (not inside the snake or walls)
             if position not in snake_positions and position not in walls:
@@ -116,7 +116,7 @@ class Game:
     def __init__(self):
         """Initialize the game with its starting state."""
         # Initialize pygame display
-        self.screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
+        self.screen = pygame.display.set_mode(WINDOW_SIZE)
         pygame.display.set_caption("Snake Game")
         
         # Initialize the console-based display
@@ -136,14 +136,14 @@ class Game:
         walls = []
         
         # Top and bottom walls
-        for x in range(GRID_SIZE):
+        for x in range(WIDTH_PYGAME):
             walls.append((x, 0))
-            walls.append((x, GRID_SIZE - 1))
+            walls.append((x, HEIGHT_PYGAME - 1))
             
         # Left and right walls
-        for y in range(1, GRID_SIZE - 1):
+        for y in range(1, HEIGHT_PYGAME - 1):
             walls.append((0, y))
-            walls.append((GRID_SIZE - 1, y))
+            walls.append((WIDTH_PYGAME - 1, y))
             
         return walls
     
@@ -225,7 +225,7 @@ class Game:
         if self.game_over:
             game_over_font = pygame.font.Font(None, 48)
             game_over_text = game_over_font.render('Game Over! Press R to restart', True, WHITE)
-            text_rect = game_over_text.get_rect(center=(WINDOW_SIZE/2, WINDOW_SIZE/2))
+            text_rect = game_over_text.get_rect(center=(WINDOW_SIZE[0]/2, WINDOW_SIZE[1]/2))
             self.screen.blit(game_over_text, text_rect)
         
         # Update the display

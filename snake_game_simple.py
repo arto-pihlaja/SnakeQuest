@@ -18,7 +18,7 @@ class Snake:
         self.length = INITIAL_SNAKE_LENGTH
         # Start the snake in the middle of the screen
         self.positions = [
-            (GRID_WIDTH // 2, GRID_HEIGHT // 2 + i) 
+            (WIDTH_SIMPLE // 2, HEIGHT_SIMPLE // 2 + i) 
             for i in range(self.length)
         ]
         self.direction = UP
@@ -39,8 +39,8 @@ class Snake:
         new_head = (new_x, new_y)
         
         # Check if the snake hits the wall
-        if (new_x == 0 or new_x == GRID_WIDTH - 1 or 
-            new_y == 0 or new_y == GRID_HEIGHT - 1):
+        if (new_x == 0 or new_x == WIDTH_SIMPLE - 1 or 
+            new_y == 0 or new_y == HEIGHT_SIMPLE - 1):
             return False  # Game over
         
         # Check if the snake hits itself
@@ -90,8 +90,8 @@ class Candy:
         while True:
             # Generate a random position within the game area (excluding the walls)
             position = (
-                random.randint(1, GRID_WIDTH - 2),
-                random.randint(1, GRID_HEIGHT - 2)
+                random.randint(1, WIDTH_SIMPLE - 2),
+                random.randint(1, HEIGHT_SIMPLE - 2)
             )
             # Check if the position is valid (not inside the snake or walls)
             if position not in snake_positions and position not in walls:
@@ -121,14 +121,14 @@ class Game:
         walls = []
         
         # Top and bottom walls
-        for x in range(GRID_WIDTH):
+        for x in range(WIDTH_SIMPLE):
             walls.append((x, 0))
-            walls.append((x, GRID_HEIGHT - 1))
+            walls.append((x, HEIGHT_SIMPLE - 1))
             
         # Left and right walls
-        for y in range(1, GRID_HEIGHT - 1):
+        for y in range(1, HEIGHT_SIMPLE - 1):
             walls.append((0, y))
-            walls.append((GRID_WIDTH - 1, y))
+            walls.append((WIDTH_SIMPLE - 1, y))
             
         return walls
     
@@ -177,7 +177,7 @@ class Game:
         os.system('clear' if os.name == 'posix' else 'cls')
         
         # Create a grid representation
-        grid = [[' ' for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
+        grid = [[' ' for _ in range(WIDTH_SIMPLE)] for _ in range(HEIGHT_SIMPLE)]
         
         # Place walls on the grid
         for x, y in self.walls:
