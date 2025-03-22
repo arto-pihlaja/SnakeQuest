@@ -6,15 +6,29 @@ import random
 import time
 import os
 import sys
-import sys
-import tty
-import termios
-import select
-from config import *
+import platform
 
-def get_key():
-    """Get a keypress without blocking."""
-    if os.name == 'posix':  # Linux/Unix systems
+# Platform-specific imports and key handling setup
+if platform.system() == 'Windows':
+    import msvcrt
+    
+    def get_key():
+        """Get a keypress without blocking on Windows."""
+        if msvcrt.kbhit():
+            key = msvcrt.getch().decode('utf-8').lower()
+            # Handle arrow keys on Windows
+            if key == '\xe0':  # Arrow key prefix
+                key = msvcrt.getch().decode('utf-8')
+                return {'H': 'w', 'P': 's', 'K': 'a', 'M': 'd'}.get(key)
+            return key
+        return None
+else:
+    import tty
+    import termios
+    import select
+    
+    def get_key():
+        """Get a keypress without blocking on Unix-like systems."""
         # Store original terminal settings
         old_settings = termios.tcgetattr(sys.stdin)
         try:
@@ -34,7 +48,9 @@ def get_key():
         finally:
             # Restore terminal settings
             termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
-    return None
+        return None
+
+from config import *
 
 class Snake:
     """
