@@ -1,15 +1,12 @@
 """
-Snake game module containing the main game logic and classes.
-Using a simplified PyGame approach with reduced graphics dependency.
+Snake game module with a pure Python implementation.
+This is a simplified version that works in any terminal.
 """
-import pygame
 import random
 import time
 import os
+import sys
 from config import *
-
-# Initialize Pygame with a software-only driver to avoid graphics driver issues
-os.environ['SDL_VIDEODRIVER'] = 'dummy'
 
 class Snake:
     """
@@ -34,16 +31,19 @@ class Snake:
         """Update the snake's position based on its direction."""
         head_x, head_y = self.get_head_position()
         dir_x, dir_y = self.direction
-        new_head = ((head_x + dir_x) % (GRID_SIZE - 2) + 1, 
-                   (head_y + dir_y) % (GRID_SIZE - 2) + 1)
+        
+        # Calculate new head position
+        new_x = head_x + dir_x
+        new_y = head_y + dir_y
+        new_head = (new_x, new_y)
+        
+        # Check if the snake hits the wall
+        if (new_x == 0 or new_x == GRID_SIZE - 1 or 
+            new_y == 0 or new_y == GRID_SIZE - 1):
+            return False  # Game over
         
         # Check if the snake hits itself
         if new_head in self.positions[1:]:
-            return False  # Game over
-        
-        # Check if the snake hits the wall
-        if (new_head[0] == 0 or new_head[0] == GRID_SIZE - 1 or 
-            new_head[1] == 0 or new_head[1] == GRID_SIZE - 1):
             return False  # Game over
         
         # Add the new head position at the beginning of the list
@@ -103,10 +103,6 @@ class Game:
     """
     def __init__(self):
         """Initialize the game with its starting state."""
-        # Initialize pygame in a way that doesn't require display hardware
-        pygame.init()
-        
-        # Initialize the console-based display
         self.reset_game()
         
     def reset_game(self):
@@ -133,55 +129,6 @@ class Game:
             walls.append((GRID_SIZE - 1, y))
             
         return walls
-    
-    def handle_events(self):
-        """Handle key events."""
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                return False
-            elif event.type == pygame.KEYDOWN:
-                if self.game_over:
-                    if event.key == pygame.K_r:
-                        self.reset_game()
-                else:
-                    if event.key == pygame.K_UP:
-                        self.snake.change_direction(UP)
-                    elif event.key == pygame.K_DOWN:
-                        self.snake.change_direction(DOWN)
-                    elif event.key == pygame.K_LEFT:
-                        self.snake.change_direction(LEFT)
-                    elif event.key == pygame.K_RIGHT:
-                        self.snake.change_direction(RIGHT)
-                    # Also support WASD keys
-                    elif event.key == pygame.K_w:
-                        self.snake.change_direction(UP)
-                    elif event.key == pygame.K_s:
-                        self.snake.change_direction(DOWN)
-                    elif event.key == pygame.K_a:
-                        self.snake.change_direction(LEFT)
-                    elif event.key == pygame.K_d:
-                        self.snake.change_direction(RIGHT)
-        return True
-    
-    def update(self):
-        """Update game state."""
-        if not self.game_over:
-            # Move the snake
-            if not self.snake.update():
-                self.game_over = True
-                return
-            
-            # Check for auto growth
-            self.snake.auto_grow()
-            
-            # Check if the snake ate the candy
-            if self.snake.get_head_position() == self.candy.position:
-                self.snake.grow()
-                self.candy = Candy(self.snake.positions, self.walls)
-                self.score += 1
-                
-                # Increase the speed
-                self.speed += SPEED_INCREASE
     
     def draw(self):
         """Draw the game state to the console."""
@@ -212,41 +159,78 @@ class Game:
         for row in grid:
             print(''.join(row))
             
-        # Print game over message
+        # Print game control information
         if self.game_over:
-            print("Game Over! Press 'r' to restart or 'q' to quit.")
+            print("\nGame Over!")
+            print("Press 'r' to restart or 'q' to quit.")
         else:
-            print("Use arrow keys or WASD to move. Press 'q' to quit.")
+            print("\nControls:")
+            print("w = Up, s = Down, a = Left, d = Right")
+            print("q = Quit")
+    
+    def update(self):
+        """Update game state."""
+        if not self.game_over:
+            # Move the snake
+            if not self.snake.update():
+                self.game_over = True
+                return
+            
+            # Check for auto growth
+            self.snake.auto_grow()
+            
+            # Check if the snake ate the candy
+            if self.snake.get_head_position() == self.candy.position:
+                self.snake.grow()
+                self.candy = Candy(self.snake.positions, self.walls)
+                self.score += 1
+                
+                # Increase the speed
+                self.speed += SPEED_INCREASE
     
     def run(self):
-        """Main game loop."""
-        # Set up a simple clock for game timing
-        clock = pygame.time.Clock()
-        
+        """Main game loop with simple input handling."""
         print("Welcome to Snake Game!")
-        print("Controls: Use arrow keys or WASD to move")
-        print("Press 'r' to restart after game over, 'q' to quit")
+        print("Controls: w=Up, s=Down, a=Left, d=Right, q=Quit")
         print("Game starts in 3 seconds...")
         time.sleep(3)
         
         running = True
+        last_update = time.time()
+        
+        # This is a very simplified version of the game that shows one frame
+        # and then waits for input, rather than having smooth continuous movement
         while running:
-            # Handle events
-            running = self.handle_events()
-            
-            # Get keyboard state
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_q]:
-                running = False
-            
-            # Update game state
-            self.update()
-            
-            # Draw the game state
+            # Draw the current state
             self.draw()
             
-            # Control game speed
-            clock.tick(self.speed)
-        
-        pygame.quit()
+            # Get input
+            key = input("Enter command: ").lower()
+            
+            # Process input
+            if key == 'q':
+                running = False
+            elif self.game_over and key == 'r':
+                self.reset_game()
+            elif not self.game_over:
+                # Change direction based on input
+                if key == 'w':
+                    self.snake.change_direction(UP)
+                elif key == 's':
+                    self.snake.change_direction(DOWN)
+                elif key == 'a':
+                    self.snake.change_direction(LEFT)
+                elif key == 'd':
+                    self.snake.change_direction(RIGHT)
+            
+            # Update the game state
+            if not self.game_over:
+                self.update()
+            
         print("Thanks for playing!")
+
+
+if __name__ == "__main__":
+    # Run the game
+    game = Game()
+    game.run()
